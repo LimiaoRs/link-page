@@ -1,68 +1,107 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
-  const [name, setName] = useState("陈子阳");
-  const [bio, setBio] = useState("江苏省 苏州市 | 苏州职业技术大学");
-  const [avatar, setAvatar] = useState("/touxiang.jpg");
-  ;
-  const [links, setLinks] = useState([
-    {
-      label: "小红书",
-      url: "https://www.xiaohongshu.com/user/profile/615a8f030000000002024081",
-    },
-    {
-      label: "Bilibili",
-      url: "https://b23.tv/Vhsu6b7",
-    },
-    {
-      label: "抖音",
-      url: "https://v.douyin.com/jls67xoyUC0/",
-    },
-  ]);
+  const [config, setConfig] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 读取 URL 参数中的 user=xxx
+  const getUserFromURL = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("user") || "default"; // 默认读取 default.json
+  };
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
+  useEffect(() => {
+    const user = getUserFromURL();
+    fetch(`${import.meta.env.BASE_URL}configs/${user}.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error("配置文件加载失败");
+        return res.json();
+      })
+      .then((data) => setConfig(data))
+      .catch((err) => {
+        console.error(err);
+        setConfig({
+          name: "未找到用户",
+          bio: "请检查链接是否正确",
+          avatar: "default.jpg",
+          links: [],
+        });
+      });
+  }, []);
+
+  if (!config) {
+    return <p style={{ textAlign: "center", marginTop: 100 }}>加载中...</p>;
+  }
+
+  const { name, bio, avatar, links } = config;
 
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#f0f0f0",
-        padding: 20,
+        padding: isMobile ? 15 : 40,
         boxSizing: "border-box",
       }}
     >
       <div
         style={{
           backgroundColor: "#fff",
-          padding: 30,
-          borderRadius: 20,
-          maxWidth: 400,
+          padding: isMobile ? 25 : 40,
+          borderRadius: isMobile ? 16 : 24,
+          maxWidth: isMobile ? "100%" : 480,
           width: "100%",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+          boxShadow: isMobile
+            ? "0 4px 15px rgba(0,0,0,0.1)"
+            : "0 8px 30px rgba(0,0,0,0.12)",
           textAlign: "center",
           boxSizing: "border-box",
+          transform: isMobile ? "none" : "scale(1.05)",
         }}
       >
         <img
-          src={avatar}
+          src={import.meta.env.BASE_URL + avatar}
           alt="头像"
           style={{
-            width: 100,
-            height: 100,
+            width: isMobile ? 100 : 120,
+            height: isMobile ? 100 : 120,
             borderRadius: "50%",
             objectFit: "cover",
-            marginBottom: 16,
+            marginBottom: isMobile ? 16 : 20,
+            border: "3px solid #f0f0f0",
           }}
         />
-        <h1 style={{ margin: 0, fontSize: 24 }}>{name}</h1>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: isMobile ? 24 : 28,
+            fontWeight: "700",
+            color: "#2d3748",
+            marginBottom: 8,
+          }}
+        >
+          {name}
+        </h1>
         <p
           style={{
-            color: "#555",
-            fontSize: 14,
-            marginTop: 6,
-            marginBottom: 20,
-            lineHeight: 1.4,
+            color: "#666",
+            fontSize: isMobile ? 14 : 16,
+            marginTop: 0,
+            marginBottom: isMobile ? 24 : 32,
+            lineHeight: 1.5,
+            fontWeight: "500",
           }}
         >
           {bio}
@@ -71,7 +110,7 @@ export default function App() {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 10,
+            gap: isMobile ? 12 : 16,
             alignItems: "center",
           }}
         >
@@ -83,26 +122,33 @@ export default function App() {
               rel="noopener noreferrer"
               style={{
                 display: "inline-block",
-                padding: "10px 20px",
-                borderRadius: 12,
-                border: "1.5px solid #3b82f6",
+                padding: isMobile ? "12px 24px" : "16px 32px",
+                borderRadius: isMobile ? 12 : 16,
+                border: "2px solid #3b82f6",
                 color: "#3b82f6",
                 fontWeight: "600",
                 textDecoration: "none",
-                fontSize: 16,
-                width: "80%",  // 让按钮宽度统一，且适合手机和电脑
+                fontSize: isMobile ? 16 : 18,
+                width: isMobile ? "85%" : "75%",
                 textAlign: "center",
-                transition: "background-color 0.3s, color 0.3s",
+                transition: "all 0.3s ease",
                 cursor: "pointer",
                 userSelect: "none",
+                background:
+                  "linear-gradient(135deg, transparent 0%, rgba(59, 130, 246, 0.05) 100%)",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = "#3b82f6";
                 e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 6px 20px rgba(59, 130, 246, 0.3)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
                 e.currentTarget.style.color = "#3b82f6";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               {link.label}
