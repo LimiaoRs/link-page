@@ -5,7 +5,8 @@ import ProfileEditor from './ProfileEditor';
 import LinkManager from './LinkManager';
 import AvatarUploader from './AvatarUploader';
 import FriendsManager from './FriendsManager';
-import { supabase, database } from './supabase';
+import MainMenuButton from './MainMenuButton'; // 新的主菜单按键
+import { supabase, database, getReceivedFriendRequests } from './supabase';
 import ThemeToggle from './ThemeToggle';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
   const [showAvatarUploader, setShowAvatarUploader] = useState(false);
   const [showFriendsManager, setShowFriendsManager] = useState(false);
   const [currentStatus, setCurrentStatus] = useState({ emoji: '💼', text: '工作中' });
+  const [friendRequestsCount, setFriendRequestsCount] = useState(0);
 
   // 状态选项
   const statusOptions = [
@@ -43,27 +45,16 @@ export default function App() {
   // 检查用户认证状态
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('=== 开始检查认证状态 ===');
-      
       try {
-        console.log('步骤1: 调用 supabase.auth.getUser()');
         const { data: { user } } = await supabase.auth.getUser();
-        console.log('步骤2: 获取到用户数据:', user);
         
         if (user) {
-          console.log('步骤3: 用户已登录，设置用户状态');
           setUser(user);
-          
-          console.log('步骤4: 开始加载用户数据');
           await loadUserData(user);
-          console.log('步骤5: 用户数据加载完成');
-        } else {
-          console.log('步骤3: 用户未登录');
         }
       } catch (error) {
         console.error('认证检查出错:', error);
       } finally {
-        console.log('步骤6: 设置 loading 为 false');
         setLoading(false);
       }
     };
@@ -71,26 +62,31 @@ export default function App() {
     checkAuth();
   }, []);
 
-  // 加载用户数据（包括资料和链接）
+  // 加载好友请求数量
+  const loadFriendRequestsCount = async (userId) => {
+    try {
+      const { data, error } = await getReceivedFriendRequests(userId);
+      if (!error && data) {
+        setFriendRequestsCount(data.length);
+      }
+    } catch (error) {
+      console.error('加载好友请求数量失败:', error);
+    }
+  };
+
+  // 加载用户数据
   const loadUserData = async (currentUser) => {
-    console.log('开始加载用户数据，用户ID:', currentUser.id);
-    console.log('用户完整信息:', currentUser);
-    
     try {
       // 加载用户资料
-      console.log('正在加载用户资料...');
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
         .single();
       
-      console.log('用户资料查询结果:', { profileData, profileError });
-      
       if (profileError) {
         if (profileError.code === 'PGRST116') {
-          console.log('用户资料不存在，创建默认资料');
-          // 用户资料不存在，创建新的
+          // 创建新用户资料
           const newProfile = {
             id: currentUser.id,
             username: currentUser.user_metadata?.username || 
@@ -108,8 +104,6 @@ export default function App() {
             discriminator: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
           };
           
-          console.log('准备创建的新资料:', newProfile);
-          
           try {
             const { data: createdProfile, error: createError } = await supabase
               .from('profiles')
@@ -117,15 +111,8 @@ export default function App() {
               .select()
               .single();
             
-            if (createError) {
-              console.error('创建用户资料失败:', createError);
-              setProfile(newProfile); // 使用本地数据
-            } else {
-              console.log('用户资料创建成功:', createdProfile);
-              setProfile(createdProfile);
-            }
+            setProfile(createError ? newProfile : createdProfile);
           } catch (error) {
-            console.error('创建用户资料异常:', error);
             setProfile(newProfile);
           }
           
@@ -134,7 +121,6 @@ export default function App() {
             text: newProfile.current_status_text
           });
         } else {
-          console.error('获取用户资料时发生其他错误:', profileError);
           // 使用默认资料
           const defaultProfile = {
             id: currentUser.id,
@@ -153,7 +139,6 @@ export default function App() {
           });
         }
       } else if (profileData) {
-        console.log('用户资料加载成功:', profileData);
         setProfile(profileData);
         setCurrentStatus({
           emoji: profileData.current_status_emoji || '💼',
@@ -162,59 +147,39 @@ export default function App() {
       }
 
       // 加载用户链接
-      console.log('正在加载用户链接...');
-      const { data: linksData, error: linksError } = await supabase
+      const { data: linksData } = await supabase
         .from('links')
         .select('*')
         .eq('user_id', currentUser.id)
         .order('order_index');
       
-      console.log('用户链接查询结果:', { linksData, linksError });
-      
-      if (linksError) {
-        console.error('加载链接失败:', linksError);
-        setLinks([]); // 设为空数组
-      } else {
-        console.log('链接加载成功，数量:', linksData?.length || 0);
-        setLinks(linksData || []);
-      }
+      setLinks(linksData || []);
+
+      // 加载好友请求数量
+      await loadFriendRequestsCount(currentUser.id);
+
     } catch (error) {
       console.error('加载用户数据失败:', error);
-      // 出错时使用默认数据
-      const defaultProfile = {
-        id: currentUser.id,
-        username: currentUser.email?.split('@')[0] || 'user',
-        display_name: currentUser.email?.split('@')[0] || '用户',
-        bio: '这个人很懒，什么都没写...',
-        avatar_url: '',
-        current_status_emoji: '💼',
-        current_status_text: '工作中',
-        email: currentUser.email
-      };
-      setProfile(defaultProfile);
-      setCurrentStatus({
-        emoji: defaultProfile.current_status_emoji,
-        text: defaultProfile.current_status_text
-      });
-      setLinks([]);
     }
   };
 
   // 处理登录成功
   const handleAuthSuccess = (user) => {
-    console.log('登录成功:', user);
     setUser(user);
     loadUserData(user);
   };
 
   // 处理登出
   const handleLogout = async () => {
+    if (!confirm('确定要退出登录吗？')) return;
+    
     try {
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
       setLinks([]);
       setCurrentStatus({ emoji: '💼', text: '工作中' });
+      setFriendRequestsCount(0);
       setIsEditMode(false);
       setShowProfileEditor(false);
       setShowLinkManager(false);
@@ -229,9 +194,7 @@ export default function App() {
   const toggleEditMode = () => {
     const newEditMode = !isEditMode;
     setIsEditMode(newEditMode);
-    console.log('切换编辑模式:', newEditMode);
     
-    // 退出编辑模式时关闭所有弹窗
     if (!newEditMode) {
       setShowProfileEditor(false);
       setShowLinkManager(false);
@@ -240,18 +203,21 @@ export default function App() {
     }
   };
 
+  // 打开好友管理器
+  const handleOpenFriendsManager = () => {
+    setShowFriendsManager(true);
+    if (user) {
+      loadFriendRequestsCount(user.id);
+    }
+  };
+
   // 选择状态
   const selectStatus = async (emoji, text) => {
-    console.log('选择新状态:', emoji, text);
     const newStatus = { emoji, text };
-    
-    // 立即更新前端显示
     setCurrentStatus(newStatus);
     
-    // 保存到数据库
     if (user && profile) {
       try {
-        console.log('保存状态到数据库...');
         const { data, error } = await supabase
           .from('profiles')
           .update({
@@ -261,11 +227,7 @@ export default function App() {
           .eq('id', user.id)
           .select();
         
-        if (error) {
-          console.error('保存状态失败:', error);
-        } else {
-          console.log('状态保存成功:', data);
-          // 更新本地 profile 状态
+        if (!error) {
           setProfile(prev => ({
             ...prev,
             current_status_emoji: emoji,
@@ -280,7 +242,6 @@ export default function App() {
 
   // 处理资料更新
   const handleProfileUpdate = (updatedProfile) => {
-    console.log('资料更新成功:', updatedProfile);
     setProfile(updatedProfile);
     setCurrentStatus({
       emoji: updatedProfile.current_status_emoji || '💼',
@@ -290,17 +251,13 @@ export default function App() {
 
   // 处理链接更新
   const handleLinksUpdate = (updatedLinks) => {
-    console.log('链接更新:', updatedLinks);
     setLinks(updatedLinks);
   };
 
   // 处理头像更新
   const handleAvatarUpdate = (newAvatarUrl) => {
-    console.log('头像更新:', newAvatarUrl);
     setProfile(prev => ({ ...prev, avatar_url: newAvatarUrl }));
   };
-
-  console.log('当前状态 - loading:', loading, 'user:', user, 'profile:', profile, 'links:', links);
 
   // 加载中状态
   if (loading) {
@@ -327,18 +284,17 @@ export default function App() {
         </div>
       </div>
 
-      {/* 编辑按钮 */}
-      <button className="toggle-edit" onClick={toggleEditMode}>
-        ⚙️
-      </button>
-
-      {/* 登出按钮 */}
-      <button className="logout-button" onClick={handleLogout}>
-        🚪
-      </button>
-      
-      {/* 主题切换按钮 */}
+      {/* 右侧按键区域 - 简洁版（只有两个按键）*/}
       <ThemeToggle />
+      <MainMenuButton 
+        onOpenFriendsManager={handleOpenFriendsManager}
+        friendRequestsCount={friendRequestsCount}
+        isEditMode={isEditMode}
+        onToggleEditMode={toggleEditMode}
+        onOpenProfileEditor={() => setShowProfileEditor(true)}
+        onOpenLinkManager={() => setShowLinkManager(true)}
+        onLogout={handleLogout}
+      />
 
       <div className="content-card">
         {/* 编辑模式提示 */}
@@ -347,44 +303,10 @@ export default function App() {
             <div className="edit-mode-text">
               编辑模式已开启 - 点击状态选项来更改你的当前状态
             </div>
-            <div className="edit-buttons">
-              <button 
-                className="edit-profile-button"
-                onClick={() => setShowProfileEditor(true)}
-              >
-                📝 编辑个人资料
-              </button>
-              <button 
-                className="edit-links-button"
-                onClick={() => setShowLinkManager(true)}
-              >
-                🔗 管理链接
-              </button>
-              <button 
-                className="edit-friends-button"
-                onClick={() => setShowFriendsManager(true)}
-                style={{
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                👥 好友管理
-              </button>
-            </div>
           </div>
         )}
 
-        {/* 头像部分 - 支持点击上传 */}
+        {/* 头像部分 */}
         <div className="avatar-container">
           <div 
             className="avatar-clickable"
@@ -400,14 +322,12 @@ export default function App() {
             ) : (
               <div className="avatar-fallback">👤</div>
             )}
-            {/* 编辑模式下显示上传提示 */}
             {isEditMode && (
               <div className="avatar-upload-hint">
                 📸 点击更换头像
               </div>
             )}
           </div>
-          {/* 状态指示器 */}
           <div className="status-indicator">{currentStatus.emoji}</div>
         </div>
 
@@ -475,16 +395,16 @@ export default function App() {
             <div className="no-links">
               <p>还没有添加链接</p>
               {isEditMode ? (
-                <p>点击"🔗 管理链接"开始添加</p>
+                <p>在菜单中点击"管理链接"开始添加</p>
               ) : (
-                <p>点击设置按钮开始编辑</p>
+                <p>点击菜单按钮开始编辑</p>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* 个人资料编辑器弹窗 */}
+      {/* 弹窗组件 */}
       {showProfileEditor && (
         <ProfileEditor
           user={user}
@@ -494,7 +414,6 @@ export default function App() {
         />
       )}
 
-      {/* 链接管理器弹窗 */}
       {showLinkManager && (
         <LinkManager
           user={user}
@@ -504,7 +423,6 @@ export default function App() {
         />
       )}
 
-      {/* 头像上传弹窗 */}
       {showAvatarUploader && (
         <AvatarUploader
           user={user}
@@ -514,11 +432,15 @@ export default function App() {
         />
       )}
 
-      {/* 好友管理器弹窗 */}
       {showFriendsManager && (
         <FriendsManager
           user={user}
-          onClose={() => setShowFriendsManager(false)}
+          onClose={() => {
+            setShowFriendsManager(false);
+            if (user) {
+              loadFriendRequestsCount(user.id);
+            }
+          }}
         />
       )}
     </div>

@@ -265,6 +265,8 @@ export default function FriendsManager({ user, onClose }) {
     </div>
   );
 
+// 在 FriendsManager.jsx 中找到好友列表部分，替换为：
+
   const renderFriendsList = () => (
     <div className="friends-list">
       {friends.length === 0 ? (
@@ -294,9 +296,12 @@ export default function FriendsManager({ user, onClose }) {
             <div className="friend-actions">
               <button 
                 className="btn btn-outline"
-                onClick={() => window.open(`/${friend.username}`, '_blank')}
+                onClick={() => {
+                  const friendName = friend.display_name || formatUsername(friend.username, friend.discriminator);
+                  alert(`${friendName} 的个人页面功能开发中...`);
+                }}
               >
-                查看页面
+                查看页面 🚧
               </button>
               <button 
                 className="btn btn-danger"
