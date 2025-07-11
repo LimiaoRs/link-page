@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
 import App from './App.jsx'
+import { ThemeProvider } from './ThemeContext.jsx'  // 这行必须有
+import './index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>  {/* 这个包装必须有 */}
+      <App />
+    </ThemeProvider>
   </StrictMode>,
 )
