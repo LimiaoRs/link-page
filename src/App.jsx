@@ -74,94 +74,130 @@ export default function App() {
     }
   };
 
-  // 加载用户数据
-  const loadUserData = async (currentUser) => {
-    try {
-      // 加载用户资料
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
-      
-      if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          // 创建新用户资料
-          const newProfile = {
-            id: currentUser.id,
-            username: currentUser.user_metadata?.username || 
-                     currentUser.email?.split('@')[0] || 
-                     'user_' + currentUser.id.slice(0, 8),
-            display_name: currentUser.user_metadata?.display_name || 
-                         currentUser.user_metadata?.username ||
-                         currentUser.email?.split('@')[0] || 
-                         '新用户',
-            bio: '这个人很懒，什么都没写...',
-            avatar_url: '',
-            current_status_emoji: '💼',
-            current_status_text: '工作中',
-            email: currentUser.email,
-            discriminator: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-          };
+  // 加载用户数据 - 修复版本
+const loadUserData = async (currentUser) => {
+  console.log('开始加载用户数据，用户ID:', currentUser.id);
+  console.log('用户邮箱:', currentUser.email);
+  
+  try {
+    // 加载用户资料
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+    
+    console.log('用户资料查询结果:', { profileData, profileError });
+    
+    if (profileError) {
+      if (profileError.code === 'PGRST116') {
+        // 创建新用户资料
+        const newProfile = {
+          id: currentUser.id,
+          username: currentUser.user_metadata?.username || 
+                   currentUser.email?.split('@')[0] || 
+                   'user_' + currentUser.id.slice(0, 8),
+          display_name: currentUser.user_metadata?.display_name || 
+                       currentUser.user_metadata?.username ||
+                       currentUser.email?.split('@')[0] || 
+                       '新用户',
+          bio: '这个人很懒，什么都没写...',
+          avatar_url: '',
+          current_status_emoji: '💼',
+          current_status_text: '工作中',
+          email: currentUser.email, // 确保保存邮箱
+          discriminator: Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+        };
+        
+        console.log('准备创建的新资料:', newProfile);
+        
+        try {
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single();
           
-          try {
-            const { data: createdProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert([newProfile])
-              .select()
-              .single();
-            
-            setProfile(createError ? newProfile : createdProfile);
-          } catch (error) {
-            setProfile(newProfile);
-          }
-          
-          setCurrentStatus({
-            emoji: newProfile.current_status_emoji,
-            text: newProfile.current_status_text
-          });
-        } else {
-          // 使用默认资料
-          const defaultProfile = {
-            id: currentUser.id,
-            username: currentUser.email?.split('@')[0] || 'user',
-            display_name: currentUser.email?.split('@')[0] || '用户',
-            bio: '这个人很懒，什么都没写...',
-            avatar_url: '',
-            current_status_emoji: '💼',
-            current_status_text: '工作中',
-            email: currentUser.email
-          };
-          setProfile(defaultProfile);
-          setCurrentStatus({
-            emoji: defaultProfile.current_status_emoji,
-            text: defaultProfile.current_status_text
-          });
+          setProfile(createError ? newProfile : createdProfile);
+        } catch (error) {
+          console.error('创建用户资料异常:', error);
+          setProfile(newProfile);
         }
-      } else if (profileData) {
-        setProfile(profileData);
+        
         setCurrentStatus({
-          emoji: profileData.current_status_emoji || '💼',
-          text: profileData.current_status_text || '工作中'
+          emoji: newProfile.current_status_emoji,
+          text: newProfile.current_status_text
+        });
+      } else {
+        console.error('获取用户资料时发生其他错误:', profileError);
+        // 使用默认资料
+        const defaultProfile = {
+          id: currentUser.id,
+          username: currentUser.email?.split('@')[0] || 'user',
+          display_name: currentUser.email?.split('@')[0] || '用户',
+          bio: '这个人很懒，什么都没写...',
+          avatar_url: '',
+          current_status_emoji: '💼',
+          current_status_text: '工作中',
+          email: currentUser.email // 确保保存邮箱
+        };
+        setProfile(defaultProfile);
+        setCurrentStatus({
+          emoji: defaultProfile.current_status_emoji,
+          text: defaultProfile.current_status_text
         });
       }
-
-      // 加载用户链接
-      const { data: linksData } = await supabase
-        .from('links')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('order_index');
+    } else if (profileData) {
+      console.log('用户资料加载成功:', profileData);
       
-      setLinks(linksData || []);
-
-      // 加载好友请求数量
-      await loadFriendRequestsCount(currentUser.id);
-
-    } catch (error) {
-      console.error('加载用户数据失败:', error);
+      // 🆕 检查 email 字段是否为空，如果为空则更新
+      if (!profileData.email && currentUser.email) {
+        console.log('发现邮箱字段为空，正在更新...');
+        try {
+          const { data: updatedProfile, error: updateError } = await supabase
+            .from('profiles')
+            .update({ email: currentUser.email })
+            .eq('id', currentUser.id)
+            .select()
+            .single();
+          
+          if (!updateError) {
+            console.log('邮箱字段更新成功');
+            setProfile(updatedProfile);
+          } else {
+            console.error('邮箱字段更新失败:', updateError);
+            setProfile({ ...profileData, email: currentUser.email });
+          }
+        } catch (error) {
+          console.error('更新邮箱字段异常:', error);
+          setProfile({ ...profileData, email: currentUser.email });
+        }
+      } else {
+        setProfile(profileData);
+      }
+      
+      setCurrentStatus({
+        emoji: profileData.current_status_emoji || '💼',
+        text: profileData.current_status_text || '工作中'
+      });
     }
-  };
+
+    // 加载用户链接
+    const { data: linksData } = await supabase
+      .from('links')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('order_index');
+    
+    setLinks(linksData || []);
+
+    // 加载好友请求数量
+    await loadFriendRequestsCount(currentUser.id);
+
+  } catch (error) {
+    console.error('加载用户数据失败:', error);
+  }
+};
 
   // 处理登录成功
   const handleAuthSuccess = (user) => {
