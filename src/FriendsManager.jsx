@@ -11,7 +11,7 @@ import {
 } from './supabase';
 import './FriendsManager.css';
 
-export default function FriendsManager({ user, onClose }) {
+export default function FriendsManager({ user, profile, onClose }) {
   const [activeTab, setActiveTab] = useState('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -217,9 +217,9 @@ export default function FriendsManager({ user, onClose }) {
     <div className="search-results">
       {searchResults.length === 0 && searchQuery.trim() !== '' && !loading && (
         <div className="empty-message">
-          {searchQuery.includes('#') || searchQuery.includes('@') ? 
+          {searchQuery.includes('#') ? 
             `未找到用户 "${searchQuery}"` : 
-            `请输入正确格式：用户名#1234 或 邮箱地址`
+            `请输入正确格式：用户名#1234`
           }
         </div>
       )}
@@ -264,8 +264,6 @@ export default function FriendsManager({ user, onClose }) {
       ))}
     </div>
   );
-
-// 在 FriendsManager.jsx 中找到好友列表部分，替换为：
 
   const renderFriendsList = () => (
     <div className="friends-list">
@@ -435,10 +433,14 @@ export default function FriendsManager({ user, onClose }) {
         <div className="friends-content">
           {activeTab === 'search' && (
             <div className="search-section">
+              {/* 🆕 显示我的用户名 */}
+              <div className="my-username-info">
+                我的用户名: <span className="my-username">{formatUsername(profile?.username, profile?.discriminator)}</span>
+              </div>
               <div className="search-bar">
                 <input
                   type="text"
-                  placeholder="搜索用户: chenziyang#1234 或 email@example.com"
+                  placeholder="搜索用户名: chenziyang#1234"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}

@@ -96,7 +96,7 @@ export const getUserProfile = async (userId) => {
     .single()
 }
 
-// 搜索用户 - 只支持精确搜索（username#discriminator 或 精确邮箱）
+// 搜索用户 - 只支持精确用户名搜索（username#discriminator）
 export const searchUsers = async (query) => {
   console.log('搜索用户，查询条件:', query);
   
@@ -107,7 +107,7 @@ export const searchUsers = async (query) => {
   const cleanQuery = query.trim()
   
   try {
-    // 检查是否是 username#discriminator 格式
+    // 只支持 username#discriminator 格式
     if (cleanQuery.includes('#')) {
       console.log('检测到 # 格式，按用户名和discriminator精确搜索');
       const [username, discriminator] = cleanQuery.split('#')
@@ -116,7 +116,7 @@ export const searchUsers = async (query) => {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, username, discriminator, email, avatar_url, bio, display_name')
-          .eq('username', username.toLowerCase()) // 不区分大小写
+          .eq('username', username) // 严格匹配大小写
           .eq('discriminator', discriminator)
           .limit(1)
         
@@ -128,26 +128,12 @@ export const searchUsers = async (query) => {
       }
     }
     
-    // 检查是否是邮箱格式 - 精确匹配
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (emailRegex.test(cleanQuery)) {
-      console.log('检测到邮箱格式，按邮箱精确搜索');
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, discriminator, email, avatar_url, bio, display_name')
-        .eq('email', cleanQuery.toLowerCase())
-        .limit(1)
-      
-      console.log('邮箱搜索结果:', { data, error });
-      return { data: data || [], error }
-    }
-    
-    // 如果既不是 username#discriminator 格式，也不是邮箱格式，返回提示
+    // 如果不是 username#discriminator 格式，返回提示
     console.log('搜索格式不正确');
     return { 
       data: [], 
       error: { 
-        message: '请输入正确格式：用户名#1234 或 完整邮箱地址' 
+        message: '请输入正确格式：用户名#1234' 
       } 
     }
     

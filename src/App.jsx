@@ -471,6 +471,7 @@ const loadUserData = async (currentUser) => {
       {showFriendsManager && (
         <FriendsManager
           user={user}
+          profile={profile}
           onClose={() => {
             setShowFriendsManager(false);
             if (user) {
