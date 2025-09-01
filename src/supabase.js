@@ -532,3 +532,119 @@ export const getLinks = async (userId) => {
     .eq('user_id', userId)
     .order('order_index')
 }
+
+// 获取好友的完整资料信息
+export const getFriendProfile = async (friendId) => {
+  console.log('获取好友资料，好友ID:', friendId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', friendId)
+      .single();
+    
+    console.log('好友资料查询结果:', { data, error });
+    
+    if (error) {
+      console.error('获取好友资料失败:', error);
+      return { data: null, error };
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('获取好友资料异常:', error);
+    return { data: null, error: { message: '获取好友资料失败: ' + error.message } };
+  }
+};
+
+// 获取好友的所有链接
+export const getFriendLinks = async (friendId) => {
+  console.log('获取好友链接，好友ID:', friendId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('links')
+      .select('*')
+      .eq('user_id', friendId)
+      .order('order_index', { ascending: true });
+    
+    console.log('好友链接查询结果:', { data, error });
+    
+    if (error) {
+      console.error('获取好友链接失败:', error);
+      return { data: [], error };
+    }
+    
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error('获取好友链接异常:', error);
+    return { data: [], error: { message: '获取好友链接失败: ' + error.message } };
+  }
+};
+
+// 根据用户名和discriminator获取用户的公开资料（用于分享链接）
+export const getPublicProfile = async (username, discriminator) => {
+  console.log('获取公开资料:', { username, discriminator });
+  
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, discriminator, display_name, bio, avatar_url, current_status_emoji, current_status_text')
+      .eq('username', username.toLowerCase())
+      .eq('discriminator', discriminator)
+      .single();
+    
+    if (error) {
+      console.error('获取公开资料失败:', error);
+      return { data: null, error };
+    }
+    
+    // 同时获取该用户的链接
+    const { data: linksData, error: linksError } = await supabase
+      .from('links')
+      .select('*')
+      .eq('user_id', data.id)
+      .order('order_index', { ascending: true });
+    
+    return { 
+      data: {
+        ...data,
+        links: linksData || []
+      }, 
+      error: null 
+    };
+  } catch (error) {
+    console.error('获取公开资料异常:', error);
+    return { data: null, error: { message: '获取公开资料失败: ' + error.message } };
+  }
+};
+
+// 检查用户是否有权限访问某个用户的信息（是否是好友）
+export const checkFriendAccess = async (currentUserId, targetUserId) => {
+  console.log('检查好友访问权限:', { currentUserId, targetUserId });
+  
+  // 如果是自己，直接允许
+  if (currentUserId === targetUserId) {
+    return { hasAccess: true, error: null };
+  }
+  
+  try {
+    // 检查是否是好友
+    const { data: friendship, error } = await supabase
+      .from('friendships')
+      .select('*')
+      .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${currentUserId})`)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('检查好友关系失败:', error);
+      return { hasAccess: false, error };
+    }
+    
+    return { hasAccess: !!friendship, error: null };
+  } catch (error) {
+    console.error('检查好友访问权限异常:', error);
+    return { hasAccess: false, error: { message: '权限检查失败: ' + error.message } };
+  }
+};

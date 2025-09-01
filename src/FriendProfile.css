@@ -1,0 +1,562 @@
+/* FriendProfile.css - 好友页面样式，iPhone风格 */
+
+/* 主容器 */
+.friend-profile-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-gradient);
+  z-index: 2000;
+  overflow: hidden;
+  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* iPhone风格的滑入动画 */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 消息提示 */
+.message-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2001;
+  animation: toastSlideIn 0.3s ease-out;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.message-toast.success {
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+}
+
+.message-toast.error {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* 头部导航 */
+.friend-profile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.back-button,
+.remove-friend-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.back-button:hover,
+.remove-friend-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.back-button:active,
+.remove-friend-button:active {
+  transform: scale(0.95);
+}
+
+.remove-friend-button {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.remove-friend-button:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.friend-profile-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 主要内容 */
+.friend-profile-content {
+  padding-top: 84px; /* 为固定头部留出空间 */
+  padding-bottom: 40px;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+}
+
+/* 好友信息卡片 */
+.friend-info-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  margin: 20px;
+  padding: 30px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  text-align: center;
+  position: relative;
+  animation: fadeInUp 0.4s ease-out 0.1s both;
+}
+
+/* 头像容器 */
+.friend-avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.friend-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--border-color);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  background: var(--bg-secondary);
+}
+
+.friend-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.friend-avatar-image:hover {
+  transform: scale(1.05);
+}
+
+.friend-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+}
+
+/* 状态指示器 */
+.friend-status-indicator {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--border-color);
+}
+
+/* 基本信息 */
+.friend-basic-info {
+  margin-bottom: 24px;
+}
+
+.friend-display-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+[data-theme="light"] .friend-display-name {
+  color: var(--text-primary);
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
+}
+
+.friend-username {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  margin: 0 0 12px 0;
+  opacity: 0.8;
+}
+
+.friend-bio {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+
+/* 状态显示 */
+.friend-status-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 500;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+/* 社交链接区域 */
+.friend-links-section {
+  margin: 20px;
+  animation: fadeInUp 0.4s ease-out 0.2s both;
+}
+
+.links-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-left: 4px;
+}
+
+.friend-links-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friend-link-button {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 18px 24px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.friend-link-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.3);
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.friend-link-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.link-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.link-arrow {
+  font-size: 18px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+.friend-link-button:hover .link-arrow {
+  transform: translateX(4px);
+  color: #667eea;
+}
+
+/* 无链接消息 */
+.no-links-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 2px dashed var(--border-color);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.no-links-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.no-links-message p {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 底部操作区域 */
+.friend-actions-section {
+  margin: 20px;
+  display: flex;
+  gap: 12px;
+  animation: fadeInUp 0.4s ease-out 0.3s both;
+}
+
+.action-button {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+}
+
+.action-button.secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.action-button.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.action-button.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.action-button.danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.action-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 120px);
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--text-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .friend-profile-header {
+    height: 56px;
+    padding: 0 16px;
+  }
+  
+  .friend-profile-title {
+    font-size: 16px;
+    margin: 0 12px;
+  }
+  
+  .back-button,
+  .remove-friend-button {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  .friend-profile-content {
+    padding-top: 76px;
+  }
+  
+  .friend-info-card {
+    margin: 16px;
+    padding: 24px;
+    border-radius: 20px;
+  }
+  
+  .friend-avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .friend-avatar-fallback {
+    font-size: 32px;
+  }
+  
+  .friend-status-indicator {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .friend-display-name {
+    font-size: 24px;
+  }
+  
+  .friend-links-section {
+    margin: 16px;
+  }
+  
+  .friend-link-button {
+    padding: 16px 20px;
+  }
+  
+  .friend-actions-section {
+    margin: 16px;
+    flex-direction: column;
+  }
+  
+  .action-button {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .friend-info-card {
+    margin: 12px;
+    padding: 20px;
+  }
+  
+  .friend-avatar-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .friend-avatar-fallback {
+    font-size: 28px;
+  }
+  
+  .friend-status-indicator {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .friend-display-name {
+    font-size: 20px;
+  }
+  
+  .links-section-title {
+    font-size: 18px;
+  }
+  
+  .friend-link-button {
+    padding: 14px 18px;
+  }
+  
+  .link-title {
+    font-size: 15px;
+  }
+}
+
+/* 深色模式优化 */
+@media (prefers-color-scheme: dark) {
+  .friend-profile-container {
+    background: var(--bg-gradient);
+  }
+}
+
+/* 高刷新率设备优化 */
+@media (min-resolution: 120dpi) {
+  .friend-link-button,
+  .action-button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}

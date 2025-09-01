@@ -9,6 +9,7 @@ import {
   removeFriend,
   getFriendshipStatus 
 } from './supabase';
+import FriendProfile from './FriendProfile';
 import './FriendsManager.css';
 
 export default function FriendsManager({ user, profile, onClose }) {
@@ -20,6 +21,10 @@ export default function FriendsManager({ user, profile, onClose }) {
   const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // 新增状态：好友页面相关
+  const [showFriendProfile, setShowFriendProfile] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState(null);
 
   // 格式化用户名显示
   const formatUsername = (username, discriminator) => {
@@ -213,6 +218,21 @@ export default function FriendsManager({ user, profile, onClose }) {
     }
   };
 
+  // 新增：查看好友页面
+  const handleViewFriendProfile = (friend) => {
+    console.log('查看好友页面:', friend);
+    setSelectedFriend(friend);
+    setShowFriendProfile(true);
+  };
+
+  // 新增：返回好友列表
+  const handleBackToFriendsList = () => {
+    setShowFriendProfile(false);
+    setSelectedFriend(null);
+    // 重新加载好友列表
+    loadFriends();
+  };
+
   const renderSearchResults = () => (
     <div className="search-results">
       {searchResults.length === 0 && searchQuery.trim() !== '' && !loading && (
@@ -294,12 +314,9 @@ export default function FriendsManager({ user, profile, onClose }) {
             <div className="friend-actions">
               <button 
                 className="btn btn-outline"
-                onClick={() => {
-                  const friendName = friend.display_name || formatUsername(friend.username, friend.discriminator);
-                  alert(`${friendName} 的个人页面功能开发中...`);
-                }}
+                onClick={() => handleViewFriendProfile(friend)}
               >
-                查看页面 🚧
+                查看页面
               </button>
               <button 
                 className="btn btn-danger"
@@ -395,6 +412,19 @@ export default function FriendsManager({ user, profile, onClose }) {
     </div>
   );
 
+  // 如果显示好友页面，渲染好友页面组件
+  if (showFriendProfile && selectedFriend) {
+    return (
+      <FriendProfile
+        friend={selectedFriend}
+        currentUser={user}
+        onBack={handleBackToFriendsList}
+        onRemoveFriend={handleRemoveFriend}
+      />
+    );
+  }
+
+  // 否则渲染正常的好友管理器
   return (
     <div className="friends-manager-overlay">
       <div className="friends-manager">
@@ -433,7 +463,7 @@ export default function FriendsManager({ user, profile, onClose }) {
         <div className="friends-content">
           {activeTab === 'search' && (
             <div className="search-section">
-              {/* 🆕 显示我的用户名 */}
+              {/* 显示我的用户名 */}
               <div className="my-username-info">
                 我的用户名: <span className="my-username">{formatUsername(profile?.username, profile?.discriminator)}</span>
               </div>
